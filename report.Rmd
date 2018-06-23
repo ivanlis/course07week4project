@@ -1,7 +1,6 @@
 ---
 title: "Analysis of Miles per Gallon for Manual and Automatic Transmission"
 author: "Ivan Lysiuchenko"
-date: "June 23, 2018"
 output: pdf_document
 ---
 
@@ -38,17 +37,14 @@ value for manual transmission (`r meanManual`) than for auto (`r meanAuto`).
 Other aspects we notice are some patterns looking like linear relationships,
 between the outcome (mpg) and some variables, e.g. disp, hp, wt.
 
-## Search for a reasonable model
+## Research on the role of transmission type
 
 Some variables take discrete values, so we treat them as factor variables:
 cyl, vs, am, gear, carb. The cardata structure mentioned in the code chunks
 that follow is the same as mtcars, but the mentioned columns have been converted 
-into factors.
-
-If we just fit the mpg as a function of am, we don't get anything interesting.
-The estimates would be the mean mpg values for the two groups of cars formed
-by differentiating their transmission type.Maybe, we can get some insight looking 
-at a complete model, where all the variables are used as predictors:
+into factors. If we just fit the mpg as a function of am, we don't get anything interesting. The estimates would be the mean mpg values for the two groups of cars
+formed by differentiating their transmission type.Maybe, we can get some insight
+looking at a complete model, where all the variables are used as predictors:
 
 ```{r echo=TRUE, eval=FALSE}
 modelComplete <- lm(data = cardata, formula = mpg ~ .)
@@ -61,7 +57,7 @@ to include in the model we fitted for am as a predictor:
 
 ```{r}
 modelAmWt <- lm(data = cardata, formula = mpg ~ am + wt)
-summary(modelAmWt)$coefficients
+summary(modelAmWt)$coefficients[2, ]
 ```
 
 It turns out that the inclusion of weight makes the coefficient for am insignificant
@@ -79,30 +75,31 @@ It follows that according to our data, automatic transmission is generally
 installed on heavier cars. Therefore, wt appears as a confounding variable rendering
 insignificant the difference based on the 'auto'/'manual' grouping.
 
-Figure 2 in the Appendix shows that generally for the same horsepower, lighter cars
-have manual transmission and the heavier ones automatic. So, for a given horsepower,
-wt and am explain roughly the same thing. We can fit a model using am and hp.
-All its coefficients are significant.
-
-```{r echo=FALSE}
-modelAmHp <- lm(data = cardata, formula = mpg ~ am + hp)
-summary(modelAmHp)$coefficients
-```
-
-Let's interpret this model. With the same type of transmission, when the horsepower
-is increased by 1 unit, the miles per gallon change by `r modelAmHp$coefficients[3]`
-(decrease).
-Fixed the horsepower, when we change from automatic transmission to manual,
-the miles per gallon change by `r modelAmHp$coefficients[2]` (increase).
-
-But once more, if wt is included, am loses its statistical significance. 
-Moreover, it seems more logical to assume that the automatic transmission is
-installed on heavier cars because they are heavier, the opposite claim 
-("a car is heavier because its transmission is automatic") has no sense. In our opinion, it's better to take weight and horsepower as predictors and try 
-to build a better model.
 
 ## Building a model
 
+Let's take wt and hp as predictors and build two models: (1) only wt and hp 
+linear combination; (2) wt, hp and their interaction term. Their analysis as
+nested models with ANOVA shows that the interaction has a significant importance.
+
+```{r}
+modelWtHp <- lm(data = cardata, formula = mpg ~ wt + hp)
+modelWtHpInteraction <- lm(data = cardata, formula = mpg ~ wt * hp)
+anova(modelWtHp, modelWtHpInteraction)
+```
+
+We choose the model with interaction to explain the mpg of the cars from our data.
+All its coefficients are significant with low p-values.
+It can be shown with ANOVA that including any other variable to our model does not produce a significant result. Let's interpret the coefficients. When the car's weight
+increases by 1000 lbs, its miles per gallon change by 
+`r modelWtHpInteraction$coefficients[2]` (decrease). When the car gets 1 hp more
+powerful, its miles per gallon change by `r modelWtHpInteraction$coefficients[3]`
+(decrease). When the product of the two changes by 1000 (lbs * hp), the miles
+per gallon increase by `r modelWtHpInteraction$coefficients[4]`.
+
+```{r}
+summary(modelWtHpInteraction)$coefficients
+```
 
 
 
@@ -117,12 +114,6 @@ to build a better model.
 
 ```{r}
 
-
-# Figure 2
-#g <- ggplot(data.frame(hp = cardata$hp, mpg = cardata$mpg, am = cardata$am), 
-#            aes(x = hp, y = mpg, color = am)) + geom_point() + 
-#    labs(x = "horsepower", y = "weight, 1000 lbs", 
-#         title = "Figure 2. Weight and horsepower")
 
 #g <- ggplot(data.frame(wt = cardata$wt, hp = cardata$hp, am = cardata$am), aes(x = hp, 
 #y = wt, color = am)) + geom_point()
