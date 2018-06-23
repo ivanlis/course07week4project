@@ -1,7 +1,7 @@
 ---
-title: "Analysis of Car Data"
+title: "Analysis of Miles per Gallon for Manual and Automatic Transmission"
 author: "Ivan Lysiuchenko"
-date: "June 22, 2018"
+date: "June 23, 2018"
 output: pdf_document
 ---
 
@@ -9,24 +9,139 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+
+
+## Executive summary
+
+
+## Initial exploratory data analysis
+
+```{r echo=FALSE, message=FALSE}
+library(dplyr)
 library(GGally)
+cardata <- mtcars
+cardata <- mutate(cardata, 
+                  cyl = factor(as.character(cyl)),
+                  vs = factor(as.character(vs)),
+                  am = factor(as.character(am)),
+                  carb = factor(as.character(carb))
+                  )
+meanAuto <- mean(cardata[cardata$am == 0, "mpg"])
+meanManual <- mean(cardata[cardata$am == 1, "mpg"])
 ```
 
+Let's start taking a look at interactions between the predictors and outcome.
+One of the panels present in the pairs plot (Figure 1 of the Appendix) and a direct
+calculation show that really there is a better mean miles per gallon (mpg)
+value for manual transmission (`r meanManual`) than for auto (`r meanAuto`).
+
+Other aspects we notice are some patterns looking like linear relationships,
+between the outcome (mpg) and some variables, e.g. disp, hp, wt.
+
+## Search for a reasonable model
+
+Some variables take discrete values, so we treat them as factor variables:
+cyl, vs, am, gear, carb. The cardata structure mentioned in the code chunks
+that follow is the same as mtcars, but the mentioned columns have been converted 
+into factors.
+
+If we just fit the mpg as a function of am, we don't get anything interesting.
+The estimates would be the mean mpg values for the two groups of cars formed
+by differentiating their transmission type.Maybe, we can get some insight looking 
+at a complete model, where all the variables are used as predictors:
+
+```{r echo=TRUE, eval=FALSE}
+modelComplete <- lm(data = cardata, formula = mpg ~ .)
+```
+
+Analyzing the pvalues, we can say that there are no coefficients significant
+with Type I error probability of 0.05. Only two of them, hp (horsepower)
+and wt (weight) are somehow close to be significant. Let's take one of them 
+to include in the model we fitted for am as a predictor:
+
 ```{r}
-ggpairs(mtcars, upper = list(continuous = "points", combo="dot_no_facet"))
+modelAmWt <- lm(data = cardata, formula = mpg ~ am + wt)
+summary(modelAmWt)$coefficients
+```
+
+It turns out that the inclusion of weight makes the coefficient for am insignificant
+with a very high p-value. Let's look at a plot showing how mpg depends on wt. We'll
+use color to mark data for automatic (0) and manual (1) transmission.
+
+```{r}
+g <- ggplot(data.frame(wt = cardata$wt, mpg = cardata$mpg, am = cardata$am), 
+            aes(x = wt, y = mpg, color = am)) + geom_point() + 
+    labs(x = "weight, 1000 lbs", y = "miles per gallon",
+         title = "Miles per gallon as a function of weight")
+```
+
+It follows that according to our data, automatic transmission is generally 
+installed on heavier cars. Therefore, wt appears as a confounding variable rendering
+insignificant the difference based on the 'auto'/'manual' grouping.
+
+Figure 2 in the Appendix shows that generally for the same horsepower, lighter cars
+have manual transmission and the heavier ones automatic. So, for a given horsepower,
+wt and am explain roughly the same thing. We can fit a model using am and hp.
+All its coefficients are significant.
+
+```{r echo=FALSE}
+modelAmHp <- lm(data = cardata, formula = mpg ~ am + hp)
+summary(modelAmHp)$coefficients
+```
+
+Let's interpret this model. With the same type of transmission, when the horsepower
+is increased by 1 unit, the miles per gallon change by `r modelAmHp$coefficients[3]`
+(decrease).
+Fixed the horsepower, when we change from automatic transmission to manual,
+the miles per gallon change by `r modelAmHp$coefficients[2]` (increase).
+
+But once more, if wt is included, am loses its statistical significance. 
+Moreover, it seems more logical to assume that the automatic transmission is
+installed on heavier cars because they are heavier, the opposite claim 
+("a car is heavier because its transmission is automatic") has no sense. In our opinion, it's better to take weight and horsepower as predictors and try 
+to build a better model.
+
+## Building a model
+
+
+
+
+## Appendix
+
+```{r message=FALSE, echo=FALSE}
+#library(GGally)
+#ggpairs(mtcars, upper = list(continuous = "points", combo="dot_no_facet")) + 
+#    labs(title = "Pairs plot")
+```
+
+
+```{r}
+
+
+# Figure 2
+#g <- ggplot(data.frame(hp = cardata$hp, mpg = cardata$mpg, am = cardata$am), 
+#            aes(x = hp, y = mpg, color = am)) + geom_point() + 
+#    labs(x = "horsepower", y = "weight, 1000 lbs", 
+#         title = "Figure 2. Weight and horsepower")
+
+#g <- ggplot(data.frame(wt = cardata$wt, hp = cardata$hp, am = cardata$am), aes(x = hp, 
+#y = wt, color = am)) + geom_point()
+
+
+
+#g <- ggplot(data = data.frame(mpg = cardata$mpg, residWtHp = resid(modelWtHp), residWtHpInteraction = resid(modelWtHpInteraction), residAmHp = resid(modelAmHp))) + geom_line(aes(x = mpg, y = residWtHp), color = "blue") + geom_line(aes(x = mpg, y = residWtHpInteraction), color = "red") + geom_line(aes(x = mpg, y = residAmHp), color = "green")
 
 ```
 
 
 ```{r}
-mtcars$am <- factor(as.character(mtcars$am))
-model1 <- lm(data = mtcars, formula = mpg ~ am)
-
-mtcars$carb <- factor(as.character(mtcars$carb))
-model2 <- lm(data = mtcars, formula = mpg ~ am + carb)
+#modelAm <- lm(data = cardata, formula = mpg ~ am)
 
 
-mtcars$cyl <- factor(as.character(mtcars$cyl))
-model3 <- lm(data = mtcars, formula = mpg ~ am + carb + cyl)
+
+
+
+
+#g <- ggplot(data.frame(x = cardata$mpg, y = resid(modelWtHpInteraction), am = 
+#cardata$am), aes(x = x, y = y, color = am)) + geom_point()
 ```
