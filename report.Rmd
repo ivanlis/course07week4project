@@ -12,6 +12,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Executive summary
 
+The aim of this project was to research into the dependency of fuel usage on 
+transmission type (automatic vs manual) in 1973-1974 car models.
+The data used is a data set extracted from the 1974 Motor Trend magazine.
+The research was conducted by means of exploratory data analysis and linear
+regression. It was found that the difference in fuel usage (miles per gallon)
+cannot be quantified for the available data. The reason is that in general
+heavier cars were equipped with automatic transmission, and the difference
+between auto/manual transmission cars is not significant. A better regression 
+model for miles per gallon was designed. It's based on the weight and 
+horsepower of a car.
+
 
 ## Initial exploratory data analysis
 
@@ -32,9 +43,7 @@ meanManual <- mean(cardata[cardata$am == 1, "mpg"])
 Let's start taking a look at interactions between the predictors and outcome.
 One of the panels present in the pairs plot (Figure 1 of the Appendix) and a direct
 calculation show that really there is a better mean miles per gallon (mpg)
-value for manual transmission (`r meanManual`) than for auto (`r meanAuto`).
-
-Other aspects we notice are some patterns looking like linear relationships,
+value for manual transmission (`r meanManual`) than for auto (`r meanAuto`). Other aspects we notice are some patterns looking like linear relationships,
 between the outcome (mpg) and some variables, e.g. disp, hp, wt.
 
 ## Research on the role of transmission type
@@ -43,7 +52,7 @@ Some variables take discrete values, so we treat them as factor variables:
 cyl, vs, am, gear, carb. The cardata structure mentioned in the code chunks
 that follow is the same as mtcars, but the mentioned columns have been converted 
 into factors. If we just fit the mpg as a function of am, we don't get anything interesting. The estimates would be the mean mpg values for the two groups of cars
-formed by differentiating their transmission type.Maybe, we can get some insight
+formed by differentiating their transmission type. Maybe, we can get some insight
 looking at a complete model, where all the variables are used as predictors:
 
 ```{r echo=TRUE, eval=FALSE}
@@ -60,27 +69,23 @@ modelAmWt <- lm(data = cardata, formula = mpg ~ am + wt)
 summary(modelAmWt)$coefficients[2, ]
 ```
 
-It turns out that the inclusion of weight makes the coefficient for am insignificant
+It turns out that the inclusion of weight makes the coefficient 
+that evaluates the difference between the transmission types insignificant
 with a very high p-value. Let's look at a plot showing how mpg depends on wt. We'll
-use color to mark data for automatic (0) and manual (1) transmission.
-
-```{r}
-g <- ggplot(data.frame(wt = cardata$wt, mpg = cardata$mpg, am = cardata$am), 
-            aes(x = wt, y = mpg, color = am)) + geom_point() + 
-    labs(x = "weight, 1000 lbs", y = "miles per gallon",
-         title = "Miles per gallon as a function of weight")
-```
+use color to mark data for automatic (0) and manual (1) transmission. See
+Figure 2 in the Appendix.
 
 It follows that according to our data, automatic transmission is generally 
-installed on heavier cars. Therefore, wt appears as a confounding variable rendering
-insignificant the difference based on the 'auto'/'manual' grouping.
+installed on heavier cars. Therefore, __wt appears as a confounding variable rendering
+insignificant the difference based on the 'auto'/'manual' grouping.__
 
 
 ## Building a model
 
 Let's take wt and hp as predictors and build two models: (1) only wt and hp 
 linear combination; (2) wt, hp and their interaction term. Their analysis as
-nested models with ANOVA shows that the interaction has a significant importance.
+nested models with ANOVA shows that the interaction term inclusion
+is significant.
 
 ```{r}
 modelWtHp <- lm(data = cardata, formula = mpg ~ wt + hp)
@@ -89,50 +94,43 @@ anova(modelWtHp, modelWtHpInteraction)
 ```
 
 We choose the model with interaction to explain the mpg of the cars from our data.
-All its coefficients are significant with low p-values.
-It can be shown with ANOVA that including any other variable to our model does not produce a significant result. Let's interpret the coefficients. When the car's weight
-increases by 1000 lbs, its miles per gallon change by 
+__All its coefficients are significant with low p-values (less than 0.001).
+It can be shown with ANOVA that including any other variable to our model does not produce a significant result.__ Let's interpret the coefficients. __When 
+the car's weight increases by 1000 lbs, its miles per gallon change by 
 `r modelWtHpInteraction$coefficients[2]` (decrease). When the car gets 1 hp more
 powerful, its miles per gallon change by `r modelWtHpInteraction$coefficients[3]`
 (decrease). When the product of the two changes by 1000 (lbs * hp), the miles
-per gallon increase by `r modelWtHpInteraction$coefficients[4]`.
+per gallon increase by `r modelWtHpInteraction$coefficients[4]`. The intercept 
+`r modelWtHpInteraction$coefficients[1]` is the mpg of a 'theoretical' car
+with zero weight and zero horsepower (thus their product as well).__ 
 
 ```{r}
-summary(modelWtHpInteraction)$coefficients
+summary(modelWtHpInteraction)
 ```
 
+Figure 3 in the Appendix shows the residuals for this model. It doesn't seem to be
+any regular pattern. On the same figure some leverage and influence measures are shown.
+There are no influential outliers.
 
 
 ## Appendix
 
 ```{r message=FALSE, echo=FALSE}
-#library(GGally)
-#ggpairs(mtcars, upper = list(continuous = "points", combo="dot_no_facet")) + 
-#    labs(title = "Pairs plot")
-```
+library(GGally)
+ggpairs(mtcars, upper = list(continuous = "points", combo="dot_no_facet")) + 
+    labs(title = "Figure 1. Pairs plot")
 
-
-```{r}
-
-
-#g <- ggplot(data.frame(wt = cardata$wt, hp = cardata$hp, am = cardata$am), aes(x = hp, 
-#y = wt, color = am)) + geom_point()
-
-
-
-#g <- ggplot(data = data.frame(mpg = cardata$mpg, residWtHp = resid(modelWtHp), residWtHpInteraction = resid(modelWtHpInteraction), residAmHp = resid(modelAmHp))) + geom_line(aes(x = mpg, y = residWtHp), color = "blue") + geom_line(aes(x = mpg, y = residWtHpInteraction), color = "red") + geom_line(aes(x = mpg, y = residAmHp), color = "green")
+g <- ggplot(data.frame(wt = cardata$wt, mpg = cardata$mpg, am = cardata$am), 
+            aes(x = wt, y = mpg, color = am)) + geom_point() + 
+    labs(x = "weight, 1000 lbs", y = "miles per gallon",
+         title = "Figure 2. Miles per gallon as a function of weight")
+g
 
 ```
 
+Figure 3. Diagnostic plots for the chosen model
 
-```{r}
-#modelAm <- lm(data = cardata, formula = mpg ~ am)
-
-
-
-
-
-
-#g <- ggplot(data.frame(x = cardata$mpg, y = resid(modelWtHpInteraction), am = 
-#cardata$am), aes(x = x, y = y, color = am)) + geom_point()
+```{r echo = FALSE, message = FALSE}
+par(mfrow = c(2, 2))
+plot(modelWtHpInteraction)
 ```
