@@ -14,13 +14,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The aim of this project was to research into the dependency of fuel usage on 
 transmission type (automatic vs manual) in 1973-1974 car models.
-The data used is a data set extracted from the 1974 Motor Trend magazine.
+A data set extracted from the 1974 Motor Trend magazine was used.
 The research was conducted by means of exploratory data analysis and linear
-regression. It was found that the difference in fuel usage (miles per gallon)
-cannot be quantified for the available data. The reason is that in general
-heavier cars were equipped with automatic transmission, and the difference
-between auto/manual transmission cars is not significant. A better regression 
-model for miles per gallon was designed. It's based on the weight and 
+regression. From the available data it is impossible to say which transmission
+type is better in terms of miles per gallon. The reason is that in general
+heavier cars were equipped with automatic transmission, so the grouping
+by transmission type is 'contaminated' by the difference in weight. A better 
+regression model for miles per gallon was designed. It's based on the weight and 
 horsepower of a car.
 
 
@@ -46,7 +46,7 @@ calculation show that really there is a better mean miles per gallon (mpg)
 value for manual transmission (`r meanManual`) than for auto (`r meanAuto`). Other aspects we notice are some patterns looking like linear relationships,
 between the outcome (mpg) and some variables, e.g. disp, hp, wt.
 
-## Research on the role of transmission type
+## The role of transmission type
 
 Some variables take discrete values, so we treat them as factor variables:
 cyl, vs, am, gear, carb. The cardata structure mentioned in the code chunks
@@ -102,13 +102,13 @@ powerful, its miles per gallon change by `r modelWtHpInteraction$coefficients[3]
 (decrease). When the product of the two changes by 1000 (lbs * hp), the miles
 per gallon increase by `r modelWtHpInteraction$coefficients[4]`. The intercept 
 `r modelWtHpInteraction$coefficients[1]` is the mpg of a 'theoretical' car
-with zero weight and zero horsepower (thus their product as well).__ 
+with zero weight and zero horsepower (thus their product is zero as well).__ 
 
 ```{r}
 summary(modelWtHpInteraction)
 ```
 
-Figure 3 in the Appendix shows the residuals for this model. It doesn't seem to be
+Figure 3 in the Appendix shows the __residuals__ for this model. It doesn't seem to be
 any regular pattern. On the same figure some leverage and influence measures are shown.
 There are no influential outliers.
 
